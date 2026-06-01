@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Station Fuel IMS & Forecasting Dashboard</title>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-hover: #1e3a8a;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #ea580c;
+            --background: #f1f5f9;
+            --surface: #ffffff;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --border: #cbd5e1;
+            --input-bg: #f8fafc;
+            
+            /* Product Specific Identity Mappings */
+            --color-diesel: #eab308;
+            --color-91ron: #22c55e;
+            --color-95ron: #ef4444;
+            --color-97ron: #3b82f6;
+        }
+
+        [data-theme="dark"] {
+            --primary: #3b82f6;
+            --primary-hover: #60a5fa;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warning: #f97316;
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --input-bg: #0f172a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            padding: 1rem;
+            line-height: 1.4;
+        }
+
+        @media (min-width: 768px) { body { padding: 2rem; } }
+
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header {
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        header h1 { color: var(--primary); font-size: 1.5rem; }
+        
+        .theme-toggle {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0.2rem;
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .theme-toggle:hover {
+            opacity: 0.7;
+            background: none;
+        }
+
+        /* IMS Tank Monitor Section */
+        .ims-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .tank-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .tank-color-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 6px;
+        }
+
+        .tank-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            margin-top: 0.25rem;
+        }
+
+        .tank-title { font-weight: 700; font-size: 1.1rem; }
+        .tank-price { font-size: 0.95rem; font-weight: 700; background: var(--input-bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
+
+        .progress-container {
+            background: #e2e8f0;
+            border-radius: 10px;
+            height: 20px;
+            margin: 0.65rem 0;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease, background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: bold;
+            text-shadow: 0px 1px 2px rgba(0,0,0,0.6);
+            white-space: nowrap;
+            min-width: 28px;
+        }
+
+        .tank-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        .forecast-badge {
+            margin-top: 0.75rem;
+            padding: 0.35rem;
+            border-radius: 4px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .status-ok { background: rgba(22, 163, 74, 0.15); color: var(--success); }
+        .status-order { background: rgba(234, 88, 12, 0.15); color: var(--warning); animation: pulse 2s infinite; }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+
+        /* Price Manager Panel CSS */
+        .price-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .price-panel-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .price-grid-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+            align-items: flex-end;
+        }
+        .price-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .price-input-group label {
+            font-size: 0.75rem;
+        }
+        .price-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .price-input-wrapper span {
+            position: absolute;
+            left: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+        .price-input-wrapper input {
+            padding-left: 1.4rem;
+            padding-top: 0.4rem;
+            padding-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+
+        /* Collapsible Workflow Info Box Styling */
+        .workflow-details {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: var(--input-bg);
+            padding: 0.75rem;
+            border-radius: 6px;
+            margin-top: 0.75rem;
+            border: 1px dashed var(--border);
+        }
+        .workflow-details summary {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary);
+            outline: none;
+        }
+        .workflow-details ul {
+            margin-left: 1.25rem;
+            margin-top: 0.35rem;
+        }
+
+        /* Core Layout Split grids */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+
+        @media (min-width: 992px) { .main-grid { grid-template-columns: 420px 1fr; } }
+
+        .card {
+            background: var(--surface);
+            border-radius: 8px;
+            padding: 1.25rem;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .card h2 { font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 0.25rem;}
+
+        .form-group { margin-bottom: 0.75rem; }
+        label { display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.8rem; color: var(--text-secondary); }
+        input, select { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; background-color: var(--input-bg); color: var(--text); }
+        
+        .product-indicator-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            border-radius: 4px;
+            color: #fff;
+            margin-top: 0.25rem;
+        }
+
+        button { width: 100%; padding: 0.75rem; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
+        button:hover { background-color: var(--primary-hover); }
+
+        .btn-update-prices {
+            padding: 0.45rem 1rem;
+            font-size: 0.85rem;
+            height: fit-content;
+        }
+
+        .result-box { margin-top: 1rem; padding: 1rem; border-radius: 6px; background: var(--input-bg); border-left: 4px solid var(--primary); font-size: 0.85rem;}
+        .result-box .result-row { display: flex; justify-content: space-between; margin-bottom: 0.35rem; }
+        .result-box .result-row.total { font-weight: bold; border-top: 1px solid var(--border); padding-top: 0.35rem; margin-top: 0.35rem; }
+        .dynamic-product-text { font-weight: bold; transition: color 0.2s ease; }
+
+        /* Tables and Utils formatting */
+        .table-container { overflow-x: auto; max-height: 400px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 650px; }
+        th, td { padding: 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: var(--input-bg); position: sticky; top: 0; z-index: 2; }
+
+        .text-danger { color: var(--danger); font-weight: bold; }
+        .text-success { color: var(--success); font-weight: bold; }
+
+        .badge-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+
+        .actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
+        .btn-sec { background: #64748b; padding: 0.5rem 1rem; font-size: 0.8rem; width: auto; }
+        .btn-sec:hover { background: #475569; }
+        .btn-danger { background: var(--danger); }
+        .btn-danger:hover { background: #b91c1c; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="header-title-container">
+                <h1>Station Head IMS & Variance Intelligence</h1>
+                <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">🌓</button>
+            </div>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.15rem;">Ph-SRP Financial Auditing & Industry-Standard UST Order Forecasting.</p>
+
+            <details class="workflow-details" style="margin-top: 0.5rem;">
+                <summary>📊 System Framework Definitions (Ph-SRP Auditing & UST Forecasting)</summary>
+                <div style="margin-top: 0.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
+                    <div>
+                        <p><strong>Philippine SRP Financial Auditing Framework</strong></p>
+                        <p style="margin-top: 0.25rem;">Retail stations across the Philippines operate under a dynamic Suggested Retail Price (SRP) matrix controlled by local market adjustments. Because inventory is purchased in advance but sold at volatile pump rates, this framework performs real-time financial audits on "wet stock" losses.</p>
+                        <p style="margin-top: 0.25rem;">Every liter of variance caused by thermal contraction, tank sludging, or high-pressure nozzle delivery error is calculated against the currently active board rate to safeguard station net revenue margins from processing leaks.</p>
+                    </div>
+                    <div>
+                        <p><strong>Industry-Standard UST Order Forecasting</strong></p>
+                        <p style="margin-top: 0.25rem;">Underground Storage Tanks (UST) require proactive order cycles due to supply terminal travel times. This dashboard implements an automated safety threshold set at <strong>30% remaining volume</strong>.</p>
+                        <p style="margin-top: 0.25rem;">When real-time dip records drop to or below this safety boundary, the system shifts out of "Stock Secure" mode to trigger a <strong>Priority Order Alert</strong>. This protects the station from "running dry"—an issue that stalls operations, clogs lines with tank debris, and causes immediate revenue loss.</p>
+                    </div>
+                </div>
+            </details>
+        </header>
+
+        <div class="price-panel">
+            <div class="price-panel-title">⛽ Live SRP Board Price Configuration (Tuesday Adjustments)</div>
+            <form id="priceConfigForm" class="price-grid-inputs">
+                <div class="price-input-group">
+                    <label style="color: var(--color-diesel); font-weight: bold;">Diesel Price</label>
+                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfgDiesel" step="0.01" min="0" required></div>
+                </div>
+                <div class="price-input-group">
+                    <label style="color: var(--color-91ron); font-weight: bold;">91 RON Price</label>
+                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfg91" step="0.01" min="0" required></div>
+                </div>
+                <div class="price-input-group">
+                    <label style="color: var(--color-95ron); font-weight: bold;">95 RON Price</label>
+                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfg95" step="0.01" min="0" required></div>
+                </div>
+                <div class="price-input-group">
+                    <label style="color: var(--color-97ron); font-weight: bold;">97 RON Price</label>
+                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfg97" step="0.01" min="0" required></div>
+                </div>
+                <button type="submit" class="btn-update-prices">Save Price Matrix</button>
+            </form>
+
+            <details class="workflow-details">
+                <summary>💡 Why "Tuesday Adjustments"? View Local Ph Operational Context</summary>
+                <div style="margin-top: 0.5rem;">
+                    <p><strong>1. The Monday Night "Routine"</strong></p>
+                    <p style="margin-bottom: 0.5rem; margin-top: 0.15rem;">In the Philippines, oil companies (Shell, Petron, Caltex, CleanFuel, etc.) announce fuel price movements every Monday afternoon. These structured price hikes or cuts officially take effect across fuel stations nationwide the next day, Tuesday morning at exactly 6:00 AM.</p>
+                    
+                    <p><strong>2. How This App Fits into the Real-World Workflow</strong></p>
+                    <p style="margin-top: 0.15rem;">The "(Tuesday Adjustments)" label mirrors standard field operations:</p>
+                    <ul>
+                        <li><strong>Monday Night / Tuesday Pre-dawn:</strong> The manager references current energy announcements and opens this Price Configuration panel.</li>
+                        <li><strong>The Action:</strong> Input the incoming market board updates and click "Save Price Matrix".</li>
+                        <li><strong>The Result:</strong> When the Tuesday morning shifts clock in, inventory asset calculations, book reconciliations, and financial variances immediately track accurately against true running pump rates.</li>
+                    </ul>
+                </div>
+            </details>
+        </div>
+
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">Real-Time Tank Asset & Order Forecasting Monitor</h2>
+        <div class="ims-section" id="imsMonitorRow"></div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Shift Reconciliation Input</h2>
+                <form id="trackerForm">
+                    <div class="form-group">
+                        <label for="logDate">Operations Date</label>
+                        <input type="date" id="logDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fuelType">Fuel Product Line</label>
+                        <select id="fuelType" required></select>
+                        <div id="formProductBadge" class="product-indicator-badge"></div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblStartInv" class="live-price-label">Opening Balance Stock (Liters)</label>
+                        <input type="number" id="startInv" step="0.01" min="0" value="0.00" required onfocus="if(this.value=='0.00')this.value=''">
+                    </div>
+                    <div class="form-group">
+                        <label for="deliveries">Inbound Replenishment / Deliveries (Liters)</label>
+                        <input type="number" id="deliveries" step="0.01" min="0" value="0.00" required onfocus="if(this.value=='0.00')this.value=''">
+                    </div>
+                    <div class="form-group">
+                        <label for="sales">Registered Pump Sales Volume (Liters)</label>
+                        <input type="number" id="sales" step="0.01" min="0" value="0.00" required onfocus="if(this.value=='0.00')this.value=''">
+                    </div>
+                    <div class="form-group">
+                        <label for="physicalDip">Physical Dipstick Verification Reading (Liters)</label>
+                        <input type="number" id="physicalDip" step="0.01" min="0" value="0.00" required onfocus="if(this.value=='0.00')this.value=''">
+                    </div>
+                    <button type="submit">Execute Financial Audit Entry</button>
+                </form>
+
+                <details class="workflow-details">
+                    <summary>💡 How Shift Reconciliation Input Works</summary>
+                    <div style="margin-top: 0.5rem;">
+                        <p><strong>1. The Daily Closing Audit Routine</strong></p>
+                        <p style="margin-bottom: 0.5rem; margin-top: 0.15rem;">At the end of an operational shift or business day, station managers process a reconciliation workflow to cross-examine computer sales with the actual wet stock resting inside the Underground Storage Tanks (UST).</p>
+                        
+                        <p><strong>2. How This App Fits into the Real-World Workflow</strong></p>
+                        <p style="margin-top: 0.15rem;">The Reconciliation Input handles field metrics step-by-step:</p>
+                        <ul>
+                            <li><strong>Opening Balance Stock:</strong> Automatically fetches the current stock data from your dashboard database as your baseline running volume.</li>
+                            <li><strong>Inbound Replenishment:</strong> Input bulk fuel drops received from fuel lorries.</li>
+                            <li><strong>Registered Pump Sales:</strong> Input the cumulative volumes drawn from totalizer logs.</li>
+                            <li><strong>Physical Dipstick Reading:</strong> Manual measurement verification value.</li>
+                            <li><strong>The Audit Engine Result:</strong> Balanced sheet vs wet logs. Variance above 0.5% trips a critical flag indicator.</li>
+                        </ul>
+                    </div>
+                </details>
+
+                <div class="result-box" id="resultBox" style="display: none;">
+                    <div class="result-row"><span>Book Inventory Asset:</span><span id="resBook" class="dynamic-product-text">0.00 L</span></div>
+                    <div class="result-row"><span>Physical Reconciliation Discrepancy:</span><span id="resVar" class="dynamic-product-text">0.00 L</span></div>
+                    <div class="result-row total"><span>Variance Monetary Evaluation:</span><span id="resCash" class="dynamic-product-text">₱0.00</span></div>
+                    <div class="result-row" style="margin-top: 0.5rem;"><span>System Flag State:</span><span id="resStatus"></span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Station Audit Ledgers & Reconciliations</h2>
+                <div class="table-container">
+                    <table id="auditTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Product Line</th>
+                                <th>Throughput Vol</th>
+                                <th>Variance Vol</th>
+                                <th>Estimated Value Discrepancy</th>
+                                <th>Audit Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerBody"></tbody>
+                    </table>
+                </div>
+                <div class="actions">
+                    <button id="exportCSV" class="btn-sec">💾 Export Audit Sheet (.CSV)</button>
+                    <button id="clearData" class="btn-sec btn-danger">Wipe Data Cache</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_FUEL_DB = {
+            "Diesel": { price: 56.74, currentStock: 28000, capacity: 40000, color: "var(--color-diesel)" },
+            "91 RON": { price: 56.65, currentStock: 17500, capacity: 25000, color: "var(--color-91ron)" },
+            "95 RON": { price: 58.15, currentStock: 10500, capacity: 15000, color: "var(--color-95ron)" },
+            "97 RON": { price: 67.99, currentStock: 7000, capacity: 10000, color: "var(--color-97ron)" }
+        };
+
+        const REORDER_SAFETY_PCT = 0.30; 
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
+            
+            if(!localStorage.getItem('phFuelDB')) {
+                localStorage.setItem('phFuelDB', JSON.stringify(DEFAULT_FUEL_DB));
+            }
+            
+            initTheme();
+            populatePriceInputs();
+            buildDropdownOptions();
+            refreshIMSDisplay();
+            updateLivePriceLabel();
+            renderHistoricalLedger();
+
+            const themeBtn = document.getElementById('themeToggle');
+            themeBtn.addEventListener('click', () => {
+                const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', theme);
+                localStorage.setItem('phFuelTheme', theme);
+            });
+
+            document.getElementById('fuelType').addEventListener('change', () => {
+                updateLivePriceLabel();
+            });
+
+            document.getElementById('priceConfigForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const db = JSON.parse(localStorage.getItem('phFuelDB'));
+                
+                db["Diesel"].price = parseFloat(document.getElementById('cfgDiesel').value);
+                db["91 RON"].price = parseFloat(document.getElementById('cfg91').value);
+                db["95 RON"].price = parseFloat(document.getElementById('cfg95').value);
+                db["97 RON"].price = parseFloat(document.getElementById('cfg97').value);
+                
+                localStorage.setItem('phFuelDB', JSON.stringify(db));
+                
+                refreshIMSDisplay();
+                updateLivePriceLabel();
+                alert("Price Matrix updated! Dashboard metrics and logs have updated instantly to match current rates.");
+            });
+
+            document.getElementById('trackerForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const date = document.getElementById('logDate').value;
+                const product = document.getElementById('fuelType').value;
+                const start = parseFloat(document.getElementById('startInv').value) || 0;
+                const delivery = parseFloat(document.getElementById('deliveries').value) || 0;
+                const sales = parseFloat(document.getElementById('sales').value) || 0;
+                const dip = parseFloat(document.getElementById('physicalDip').value) || 0;
+
+                const db = JSON.parse(localStorage.getItem('phFuelDB'));
+                const capacity = db[product].capacity;
+                const productColor = db[product].color;
+
+                if (dip > capacity) {
+                    alert(`Operational Error: Physical dip (${dip.toLocaleString()} L) exceeds maximum tank capacity (${capacity.toLocaleString()} L).`);
+                    return;
+                }
+
+                if (sales > (start + delivery)) {
+                    alert("Operational Safeguard Alert: Registered sales cannot logically transcend baseline starting inventory + inbound shipments.");
+                    return;
+                }
+
+                const unitPrice = db[product].price;
+                const expectedBook = (start + delivery) - sales;
+                const varianceVol = dip - expectedBook;
+                const variancePHP = varianceVol * unitPrice;
+                const threshold = sales * 0.005;
+                const isCritical = Math.abs(varianceVol) > threshold;
+
+                db[product].currentStock = dip;
+                localStorage.setItem('phFuelDB', JSON.stringify(db));
+
+                const logs = JSON.parse(localStorage.getItem('fuelTrackerLogs')) || [];
+                logs.unshift({ date, product, sales, varianceVol, variancePHP, isCritical });
+                localStorage.setItem('fuelTrackerLogs', JSON.stringify(logs));
+
+                const resultBox = document.getElementById('resultBox');
+                resultBox.style.borderLeftColor = productColor;
+
+                const resBookEl = document.getElementById('resBook');
+                const resVarEl = document.getElementById('resVar');
+                const resCashEl = document.getElementById('resCash');
+
+                resBookEl.style.color = productColor;
+                resVarEl.style.color = productColor;
+                resCashEl.style.color = productColor;
+
+                resBookEl.textContent = `${expectedBook.toLocaleString(undefined, {minimumFractionDigits: 2})} L`;
+                resVarEl.textContent = `${varianceVol > 0 ? '+' : ''}${varianceVol.toLocaleString(undefined, {minimumFractionDigits: 2})} L`;
+                resCashEl.textContent = `${variancePHP >= 0 ? '₱' : '-₱'}${Math.abs(variancePHP).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
+
+                document.getElementById('resStatus').innerHTML = isCritical 
+                    ? `<span style="background:var(--danger); color:white; padding:4px 8px; border-radius:4px; font-weight:bold; display:inline-block; margin-top:2px;">Critical (>0.5%)</span>`
+                    : `<span style="background:var(--success); color:white; padding:4px 8px; border-radius:4px; font-weight:bold; display:inline-block; margin-top:2px;">Normal Range</span>`;
+
+                resultBox.style.display = 'block';
+                
+                refreshIMSDisplay();
+                renderHistoricalLedger();
+                resetFormToDefaults();
+            });
+
+            document.getElementById('clearData').addEventListener('click', () => {
+                if(confirm("Wipe system transactional history logs? Data caches will reset to defaults.")) {
+                    localStorage.removeItem('fuelTrackerLogs');
+                    localStorage.setItem('phFuelDB', JSON.stringify(DEFAULT_FUEL_DB));
+                    populatePriceInputs();
+                    refreshIMSDisplay();
+                    updateLivePriceLabel();
+                    renderHistoricalLedger();
+                    document.getElementById('resultBox').style.display = 'none';
+                    resetFormToDefaults();
+                }
+            });
+
+            document.getElementById('exportCSV').addEventListener('click', () => {
+                const logs = JSON.parse(localStorage.getItem('fuelTrackerLogs')) || [];
+                if(logs.length === 0) {
+                    alert("No parsed ledger records found to build an export document.");
+                    return;
+                }
+                let csvContent = "data:text/csv;charset=utf-8,Date,Product Line,Sales Volume (L),Variance Vol (L),Variance Value (PHP),Status\n";
+                logs.forEach(l => {
+                    const cleanProduct = `"${l.product.replace(/"/g, '""')}"`;
+                    const statusText = l.isCritical ? 'CRITICAL' : 'NORMAL';
+                    csvContent += `${l.date},${cleanProduct},${l.sales},${l.varianceVol},${l.variancePHP},${statusText}\n`;
+                });
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `Fuel_Audit_Ledger_${new Date().toISOString().split('T')[0]}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+        });
+
+        function initTheme() {
+            const savedTheme = localStorage.getItem('phFuelTheme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        }
+
+        function populatePriceInputs() {
+            const db = JSON.parse(localStorage.getItem('phFuelDB')) || DEFAULT_FUEL_DB;
+            document.getElementById('cfgDiesel').value = db["Diesel"].price;
+            document.getElementById('cfg91').value = db["91 RON"].price;
+            document.getElementById('cfg95').value = db["95 RON"].price;
+            document.getElementById('cfg97').value = db["97 RON"].price;
+        }
+
+        function buildDropdownOptions() {
+            const db = JSON.parse(localStorage.getItem('phFuelDB'));
+            const select = document.getElementById('fuelType');
+            select.innerHTML = '';
+            Object.keys(db).forEach(key => {
+                const opt = document.createElement('option');
+                opt.value = key;
+                opt.textContent = key;
+                select.appendChild(opt);
+            });
+        }
+
+        function updateLivePriceLabel() {
+            const db = JSON.parse(localStorage.getItem('phFuelDB'));
+            const pName = document.getElementById('fuelType').value;
+            if(!pName) return;
+            
+            const prod = db[pName];
+            const badge = document.getElementById('formProductBadge');
+            badge.style.backgroundColor = prod.color;
+            badge.textContent = `Rate: ₱${prod.price.toFixed(2)}/L`;
+            
+            document.getElementById('startInv').value = prod.currentStock.toFixed(2);
+        }
+
+        function refreshIMSDisplay() {
+            const db = JSON.parse(localStorage.getItem('phFuelDB'));
+            const container = document.getElementById('imsMonitorRow');
+            container.innerHTML = '';
+
+            Object.keys(db).forEach(productName => {
+                const tank = db[productName];
+                const pct = (tank.currentStock / tank.capacity) * 100;
+                const isUnderSafety = (tank.currentStock / tank.capacity) <= REORDER_SAFETY_PCT;
+                
+                let barColor = tank.color;
+                if(isUnderSafety) barColor = 'var(--danger)';
+
+                const card = document.createElement('div');
+                card.className = 'tank-card';
+                card.innerHTML = `
+                    <div class="tank-color-indicator" style="background: ${tank.color}"></div>
+                    <div class="tank-header">
+                        <span class="tank-title">${productName}</span>
+                        <span class="tank-price">₱${tank.price.toFixed(2)}</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${pct}%; background-color: ${barColor}">
+                            ${pct.toFixed(0)}%
+                        </div>
+                    </div>
+                    <div class="tank-meta">
+                        <span>Stock: <strong>${tank.currentStock.toLocaleString()} L</strong></span>
+                        <span>Cap: ${tank.capacity.toLocaleString()} L</span>
+                    </div>
+                    <div class="forecast-badge ${isUnderSafety ? 'status-order' : 'status-ok'}">
+                        ${isUnderSafety ? '🚨 Priority Order Alert' : '✅ Stock Secure'}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderHistoricalLedger() {
+            const logs = JSON.parse(localStorage.getItem('fuelTrackerLogs')) || [];
+            const body = document.getElementById('ledgerBody');
+            body.innerHTML = '';
+
+            if(logs.length === 0) {
+                body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">No ledger balance records stored.</td></tr>`;
+                return;
+            }
+
+            logs.forEach(l => {
+                const row = document.createElement('tr');
+                const statusCell = l.isCritical 
+                    ? `<span class="text-danger">⚠️ Critical Variation</span>` 
+                    : `<span class="text-success">Passed</span>`;
+                
+                row.innerHTML = `
+                    <td>${l.date}</td>
+                    <td><strong>${l.product}</strong></td>
+                    <td>${l.sales.toLocaleString()} L</td>
+                    <td class="${l.varianceVol < 0 ? 'text-danger' : ''}">${l.varianceVol > 0 ? '+' : ''}${l.varianceVol.toFixed(2)} L</td>
+                    <td class="${l.variancePHP < 0 ? 'text-danger' : ''}">₱${l.variancePHP.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    <td>${statusCell}</td>
+                `;
+                body.appendChild(row);
+            });
+        }
+
+        function resetFormToDefaults() {
+            document.getElementById('deliveries').value = "0.00";
+            document.getElementById('sales').value = "0.00";
+            document.getElementById('physicalDip').value = "0.00";
+            updateLivePriceLabel();
+        }
+    </script>
+</body>
+</html>
