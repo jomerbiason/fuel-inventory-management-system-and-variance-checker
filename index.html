@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Fuel Inventory Management System with Ph-SRP financial auditing and UST order forecasting for Philippine fuel stations.">
+    <meta name="theme-color" content="#1e40af">
     <title>Fuel IMS & Variance Checker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
     <style>
         :root {
             --primary: #1e40af;
@@ -17,14 +20,13 @@
             --text-secondary: #475569;
             --border: #cbd5e1;
             --input-bg: #f8fafc;
-            
+
             /* Product Specific Identity Mappings */
             --color-diesel: #eab308;
             --color-91ron: #22c55e;
             --color-95ron: #ef4444;
             --color-97ron: #3b82f6;
         }
-
         [data-theme="dark"] {
             --primary: #3b82f6;
             --primary-hover: #60a5fa;
@@ -38,7 +40,6 @@
             --border: #334155;
             --input-bg: #0f172a;
         }
-
         * {
             box-sizing: border-box;
             margin: 0;
@@ -46,49 +47,48 @@
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
         }
-
         body {
             background-color: var(--background);
             color: var(--text);
             padding: 1rem;
             line-height: 1.4;
         }
-
         @media (min-width: 768px) { body { padding: 2rem; } }
-
         .container { max-width: 1400px; margin: 0 auto; }
-
         header {
             border-bottom: 2px solid var(--border);
             padding-bottom: 0.75rem;
             margin-bottom: 1.25rem;
         }
-
         .header-title-container {
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-
         header h1 { color: var(--primary); font-size: 1.5rem; }
-        
+
         .theme-toggle {
             background: none;
-            border: none;
+            border: 1px solid transparent;
             color: var(--text);
             cursor: pointer;
             font-size: 1.1rem;
-            padding: 0.2rem;
+            padding: 0.3rem 0.5rem;
             width: auto;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            border-radius: 6px;
         }
-        .theme-toggle:hover {
-            opacity: 0.7;
-            background: none;
+        .theme-toggle:hover { opacity: 0.7; background: none; }
+        .theme-toggle:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        summary:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
         }
-
         /* IMS Tank Monitor Section */
         .ims-section {
             display: grid;
@@ -96,7 +96,6 @@
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
-
         .tank-card {
             background: var(--surface);
             border: 1px solid var(--border);
@@ -106,7 +105,6 @@
             position: relative;
             overflow: hidden;
         }
-
         .tank-color-indicator {
             position: absolute;
             top: 0;
@@ -114,7 +112,6 @@
             right: 0;
             height: 6px;
         }
-
         .tank-header {
             display: flex;
             justify-content: space-between;
@@ -122,10 +119,8 @@
             margin-bottom: 0.5rem;
             margin-top: 0.25rem;
         }
-
         .tank-title { font-weight: 700; font-size: 1.1rem; }
         .tank-price { font-size: 0.95rem; font-weight: 700; background: var(--input-bg); padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border); }
-
         .progress-container {
             background: #e2e8f0;
             border-radius: 10px;
@@ -136,7 +131,6 @@
             display: flex;
             align-items: center;
         }
-
         .progress-bar {
             height: 100%;
             width: 0%;
@@ -151,7 +145,6 @@
             white-space: nowrap;
             min-width: 28px;
         }
-
         .tank-meta {
             display: flex;
             justify-content: space-between;
@@ -159,7 +152,6 @@
             color: var(--text-secondary);
             margin-top: 0.25rem;
         }
-
         .forecast-badge {
             margin-top: 0.75rem;
             padding: 0.35rem;
@@ -171,13 +163,15 @@
         }
         .status-ok { background: rgba(22, 163, 74, 0.15); color: var(--success); }
         .status-order { background: rgba(234, 88, 12, 0.15); color: var(--warning); animation: pulse 2s infinite; }
-
+        @media (prefers-reduced-motion: reduce) {
+            .status-order { animation: none; }
+            * { transition: none !important; }
+        }
         @keyframes pulse {
             0% { opacity: 0.7; }
             50% { opacity: 1; }
             100% { opacity: 0.7; }
         }
-
         /* Price Manager Panel CSS */
         .price-panel {
             background: var(--surface);
@@ -227,7 +221,6 @@
             padding-bottom: 0.4rem;
             font-size: 0.9rem;
         }
-
         /* Collapsible Workflow Info Box Styling */
         .workflow-details {
             font-size: 0.8rem;
@@ -248,16 +241,13 @@
             margin-left: 1.25rem;
             margin-top: 0.35rem;
         }
-
         /* Core Layout Split grids */
         .main-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 1.5rem;
         }
-
         @media (min-width: 992px) { .main-grid { grid-template-columns: 420px 1fr; } }
-
         .card {
             background: var(--surface);
             border-radius: 8px;
@@ -266,13 +256,11 @@
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
             height: fit-content;
         }
-
         .card h2 { font-size: 1.2rem; margin-bottom: 1rem; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 0.25rem;}
-
         .form-group { margin-bottom: 0.75rem; }
         label { display: block; margin-bottom: 0.25rem; font-weight: 600; font-size: 0.8rem; color: var(--text-secondary); }
         input, select { width: 100%; padding: 0.5rem 0.75rem; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; background-color: var(--input-bg); color: var(--text); }
-        
+
         .product-indicator-badge {
             display: inline-block;
             padding: 0.15rem 0.5rem;
@@ -282,30 +270,41 @@
             color: #fff;
             margin-top: 0.25rem;
         }
-
         button { width: 100%; padding: 0.75rem; background-color: var(--primary); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
         button:hover { background-color: var(--primary-hover); }
-
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-update-prices {
             padding: 0.45rem 1rem;
             font-size: 0.85rem;
             height: fit-content;
         }
-
         .result-box { margin-top: 1rem; padding: 1rem; border-radius: 6px; background: var(--input-bg); border-left: 4px solid var(--primary); font-size: 0.85rem;}
         .result-box .result-row { display: flex; justify-content: space-between; margin-bottom: 0.35rem; }
         .result-box .result-row.total { font-weight: bold; border-top: 1px solid var(--border); padding-top: 0.35rem; margin-top: 0.35rem; }
         .dynamic-product-text { font-weight: bold; transition: color 0.2s ease; }
-
+        .field-error { color: var(--danger); font-size: 0.75rem; margin-top: 0.2rem; min-height: 1em; }
+        /* Summary strip above ledger */
+        .summary-strip {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .summary-chip {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+        }
+        .summary-chip .label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.03em; }
+        .summary-chip .value { font-size: 1.05rem; font-weight: 700; }
         /* Tables and Utils formatting */
         .table-container { overflow-x: auto; max-height: 400px; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 650px; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 700px; }
         th, td { padding: 0.65rem; text-align: left; border-bottom: 1px solid var(--border); }
         th { background-color: var(--input-bg); position: sticky; top: 0; z-index: 2; }
-
         .text-danger { color: var(--danger); font-weight: bold; }
         .text-success { color: var(--success); font-weight: bold; }
-
         .badge-dot {
             display: inline-block;
             width: 10px;
@@ -314,26 +313,76 @@
             margin-right: 6px;
             vertical-align: middle;
         }
-
+        .row-delete-btn {
+            width: auto;
+            background: none;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 0.2rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .row-delete-btn:hover { background: var(--danger); color: white; }
         .actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
         .btn-sec { background: #64748b; padding: 0.5rem 1rem; font-size: 0.8rem; width: auto; }
         .btn-sec:hover { background: #475569; }
         .btn-danger { background: var(--danger); }
         .btn-danger:hover { background: #b91c1c; }
+        footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); font-size: 0.75rem; color: var(--text-secondary); text-align: center; }
+        footer a { color: var(--primary); }
+        /* Market Reference Comparator */
+        .ref-controls { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 0.75rem; }
+        .ref-controls .form-group { margin-bottom: 0; flex: 1; min-width: 160px; }
+        .ref-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 0.5rem; }
+        .ref-table th, .ref-table td { padding: 0.5rem; border-bottom: 1px solid var(--border); text-align: left; }
+        .ref-table th { color: var(--text-secondary); font-weight: 600; font-size: 0.75rem; text-transform: uppercase; }
+        .ref-note { font-size: 0.75rem; color: var(--text-secondary); background: var(--input-bg); border: 1px dashed var(--border); border-radius: 6px; padding: 0.6rem; margin-top: 0.5rem; }
+        .ref-note a { color: var(--primary); }
+        .brand-chip {
+            display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.72rem;
+            font-weight: 700; color: #fff; margin-right: 0.35rem;
+        }
+        /* Station Locator */
+        .locator-controls { display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end; margin-bottom: 1rem; }
+        .brand-filter-group { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .brand-check {
+            display: inline-flex; align-items: center; gap: 0.35rem;
+            border: 1px solid var(--border); border-radius: 6px; padding: 0.35rem 0.6rem;
+            font-size: 0.8rem; cursor: pointer; background: var(--input-bg);
+        }
+        .brand-check input { width: auto; }
+        #locateBtn { width: auto; padding: 0.6rem 1.25rem; }
+        #locatorMap { height: 320px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem; display: none; }
+        .station-list { list-style: none; }
+        .station-item {
+            display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+            padding: 0.65rem 0.25rem; border-bottom: 1px solid var(--border); font-size: 0.85rem;
+        }
+        .station-item:last-child { border-bottom: none; }
+        .station-name { font-weight: 700; }
+        .station-meta { font-size: 0.75rem; color: var(--text-secondary); }
+        .station-distance { font-weight: 700; color: var(--primary); white-space: nowrap; }
+        .station-dir-link { font-size: 0.75rem; color: var(--primary); text-decoration: none; white-space: nowrap; }
+        .station-dir-link:hover { text-decoration: underline; }
+        .locator-status { font-size: 0.85rem; color: var(--text-secondary); padding: 0.5rem 0; }
+        .sr-only {
+            position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+            overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+        }
     </style>
 </head>
 <body>
-
     <div class="container">
         <header>
             <div class="header-title-container">
-                <h1>Fuel Inventory Manangement System & Variance Checker</h1>
-                <button class="theme-toggle" id="themeToggle" title="Toggle Light/Dark Theme">🌓</button>
+                <h1>Fuel Inventory Management System &amp; Variance Checker</h1>
+                <button class="theme-toggle" id="themeToggle" type="button" aria-pressed="false" title="Toggle Light/Dark Theme">
+                    <span id="themeIcon" aria-hidden="true">🌙</span>
+                    <span class="sr-only">Toggle light/dark theme</span>
+                </button>
             </div>
-            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.15rem;">Ph-SRP Financial Auditing & Industry-Standard UST Order Forecasting.</p>
-
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 0.15rem;">Ph-SRP Financial Auditing &amp; Industry-Standard UST Order Forecasting.</p>
             <details class="workflow-details" style="margin-top: 0.5rem;">
-                <summary>📊 System Framework Definitions (Ph-SRP Auditing & UST Forecasting)</summary>
+                <summary>📊 System Framework Definitions (Ph-SRP Auditing &amp; UST Forecasting)</summary>
                 <div style="margin-top: 0.5rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
                     <div>
                         <p><strong>Philippine SRP Financial Auditing Framework</strong></p>
@@ -348,35 +397,60 @@
                 </div>
             </details>
         </header>
-
         <div class="price-panel">
             <div class="price-panel-title">⛽ Live SRP Board Price Configuration (Tuesday Adjustments)</div>
             <form id="priceConfigForm" class="price-grid-inputs">
                 <div class="price-input-group">
-                    <label style="color: var(--color-diesel); font-weight: bold;">Diesel Price</label>
-                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfgDiesel" step="0.01" min="0" required></div>
+                    <label for="cfgDiesel" style="color: var(--color-diesel); font-weight: bold;">Diesel Price</label>
+                    <div class="price-input-wrapper"><span aria-hidden="true">₱</span><input type="number" id="cfgDiesel" step="0.01" min="0" required aria-label="Diesel price per liter in pesos"></div>
                 </div>
                 <div class="price-input-group">
-                    <label style="color: var(--color-91ron); font-weight: bold;">91 RON Price</label>
-                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfg91" step="0.01" min="0" required></div>
+                    <label for="cfg91" style="color: var(--color-91ron); font-weight: bold;">91 RON Price</label>
+                    <div class="price-input-wrapper"><span aria-hidden="true">₱</span><input type="number" id="cfg91" step="0.01" min="0" required aria-label="91 RON price per liter in pesos"></div>
                 </div>
                 <div class="price-input-group">
-                    <label style="color: var(--color-95ron); font-weight: bold;">95 RON Price</label>
-                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfg95" step="0.01" min="0" required></div>
+                    <label for="cfg95" style="color: var(--color-95ron); font-weight: bold;">95 RON Price</label>
+                    <div class="price-input-wrapper"><span aria-hidden="true">₱</span><input type="number" id="cfg95" step="0.01" min="0" required aria-label="95 RON price per liter in pesos"></div>
                 </div>
                 <div class="price-input-group">
-                    <label style="color: var(--color-97ron); font-weight: bold;">97 RON Price</label>
-                    <div class="price-input-wrapper"><span>₱</span><input type="number" id="cfg97" step="0.01" min="0" required></div>
+                    <label for="cfg97" style="color: var(--color-97ron); font-weight: bold;">97 RON Price</label>
+                    <div class="price-input-wrapper"><span aria-hidden="true">₱</span><input type="number" id="cfg97" step="0.01" min="0" required aria-label="97 RON price per liter in pesos"></div>
                 </div>
                 <button type="submit" class="btn-update-prices">Save Price Matrix</button>
             </form>
+
+            <div style="margin-top: 1rem;">
+                <div class="price-panel-title">📡 Market Reference Comparator</div>
+                <div class="ref-controls">
+                    <div class="form-group">
+                        <label for="refBrand">Compare Against Brand</label>
+                        <select id="refBrand">
+                            <option value="Petron">Petron</option>
+                            <option value="Shell">Shell</option>
+                            <option value="Caltex">Caltex</option>
+                            <option value="SeaOil">SeaOil</option>
+                        </select>
+                    </div>
+                    <button type="button" id="applyRefBtn" class="btn-update-prices btn-sec" style="width:auto;">⬇️ Apply to My Price Matrix</button>
+                </div>
+                <table class="ref-table">
+                    <thead>
+                        <tr><th>Product</th><th>Indicative SRP</th></tr>
+                    </thead>
+                    <tbody id="refTableBody"></tbody>
+                </table>
+                <div class="ref-note">
+                    ⚠️ <strong>Not a live feed.</strong> There is no free public real-time API for Philippine pump prices, so these figures are a manually-sourced reference snapshot (see date/source below), not an auto-sync. Prices move weekly (usually Tuesdays) and vary ₱1–3 by location. Always cross-check against the <a href="https://doe.gov.ph/oil-monitor" target="_blank" rel="noopener">DOE's official Oil Monitor advisory</a> before applying to your own board, and update this snapshot manually — or ask the developer to refresh it — when it goes stale.
+                    <div id="refSourceNote" style="margin-top: 0.35rem; font-style: italic;"></div>
+                </div>
+            </div>
 
             <details class="workflow-details">
                 <summary>💡 Why "Tuesday Adjustments"? View Local Ph Operational Context</summary>
                 <div style="margin-top: 0.5rem;">
                     <p><strong>1. The Monday Night "Routine"</strong></p>
                     <p style="margin-bottom: 0.5rem; margin-top: 0.15rem;">In the Philippines, oil companies (Shell, Petron, Caltex, CleanFuel, etc.) announce fuel price movements every Monday afternoon. These structured price hikes or cuts officially take effect across fuel stations nationwide the next day, Tuesday morning at exactly 6:00 AM.</p>
-                    
+
                     <p><strong>2. How This App Fits into the Real-World Workflow</strong></p>
                     <p style="margin-top: 0.15rem;">The "(Tuesday Adjustments)" label mirrors standard field operations:</p>
                     <ul>
@@ -387,14 +461,12 @@
                 </div>
             </details>
         </div>
-
-        <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">Real-Time Tank Asset & Order Forecasting Monitor</h2>
-        <div class="ims-section" id="imsMonitorRow"></div>
-
+        <h2 style="font-size: 1.1rem; margin-bottom: 0.5rem; color: var(--primary);">Real-Time Tank Asset &amp; Order Forecasting Monitor</h2>
+        <div class="ims-section" id="imsMonitorRow" aria-live="polite"></div>
         <div class="main-grid">
             <div class="card">
                 <h2>Shift Reconciliation Input</h2>
-                <form id="trackerForm">
+                <form id="trackerForm" novalidate>
                     <div class="form-group">
                         <label for="logDate">Operations Date</label>
                         <input type="date" id="logDate" required>
@@ -405,7 +477,7 @@
                         <div id="formProductBadge" class="product-indicator-badge"></div>
                     </div>
                     <div class="form-group">
-                        <label id="lblStartInv" class="live-price-label">Opening Balance Stock (Liters)</label>
+                        <label id="lblStartInv" for="startInv" class="live-price-label">Opening Balance Stock (Liters)</label>
                         <input type="number" id="startInv" step="0.01" min="0" value="0.00" required onfocus="if(this.value=='0.00')this.value=''">
                     </div>
                     <div class="form-group">
@@ -419,20 +491,20 @@
                     <div class="form-group">
                         <label for="physicalDip">Physical Dipstick Verification Reading (Liters)</label>
                         <input type="number" id="physicalDip" step="0.01" min="0" value="0.00" required onfocus="if(this.value=='0.00')this.value=''">
+                        <div class="field-error" id="formError" role="alert"></div>
                     </div>
                     <button type="submit">Execute Financial Audit Entry</button>
                 </form>
-
                 <details class="workflow-details">
                     <summary>💡 How Shift Reconciliation Input Works</summary>
                     <div style="margin-top: 0.5rem;">
                         <p><strong>1. The Daily Closing Audit Routine</strong></p>
                         <p style="margin-bottom: 0.5rem; margin-top: 0.15rem;">At the end of an operational shift or business day, station managers process a reconciliation workflow to cross-examine computer sales with the actual wet stock resting inside the Underground Storage Tanks (UST).</p>
-                        
+
                         <p><strong>2. How This App Fits into the Real-World Workflow</strong></p>
                         <p style="margin-top: 0.15rem;">The Reconciliation Input handles field metrics step-by-step:</p>
                         <ul>
-                            <li><strong>Opening Balance Stock:</strong> Automatically fetches the current stock data from your dashboard database as your baseline running volume.</li>
+                            <li><strong>Opening Balance Stock:</strong> Automatically fetches the current stock data from your dashboard database as your baseline running volume (editable if a manual correction is needed).</li>
                             <li><strong>Inbound Replenishment:</strong> Input bulk fuel drops received from fuel lorries.</li>
                             <li><strong>Registered Pump Sales:</strong> Input the cumulative volumes drawn from totalizer logs.</li>
                             <li><strong>Physical Dipstick Reading:</strong> Manual measurement verification value.</li>
@@ -440,17 +512,16 @@
                         </ul>
                     </div>
                 </details>
-
-                <div class="result-box" id="resultBox" style="display: none;">
+                <div class="result-box" id="resultBox" style="display: none;" aria-live="polite">
                     <div class="result-row"><span>Book Inventory Asset:</span><span id="resBook" class="dynamic-product-text">0.00 L</span></div>
                     <div class="result-row"><span>Physical Reconciliation Discrepancy:</span><span id="resVar" class="dynamic-product-text">0.00 L</span></div>
                     <div class="result-row total"><span>Variance Monetary Evaluation:</span><span id="resCash" class="dynamic-product-text">₱0.00</span></div>
                     <div class="result-row" style="margin-top: 0.5rem;"><span>System Flag State:</span><span id="resStatus"></span></div>
                 </div>
             </div>
-
             <div class="card">
-                <h2>Station Audit Ledgers & Reconciliations</h2>
+                <h2>Station Audit Ledgers &amp; Reconciliations</h2>
+                <div class="summary-strip" id="summaryStrip"></div>
                 <div class="table-container">
                     <table id="auditTable">
                         <thead>
@@ -461,6 +532,7 @@
                                 <th>Variance Vol</th>
                                 <th>Estimated Value Discrepancy</th>
                                 <th>Audit Status</th>
+                                <th><span class="sr-only">Actions</span></th>
                             </tr>
                         </thead>
                         <tbody id="ledgerBody"></tbody>
@@ -472,8 +544,38 @@
                 </div>
             </div>
         </div>
-    </div>
+        <div class="card" style="margin-top: 1.5rem;">
+            <h2>🧭 Nearest Fuel Station Locator</h2>
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Uses your device's location plus live OpenStreetMap data (no API key required) to find real fuel stations nearby.</p>
+            <div class="locator-controls">
+                <div class="brand-filter-group" id="brandFilterGroup" role="group" aria-label="Filter by fuel brand">
+                    <label class="brand-check"><input type="checkbox" value="Petron" checked> Petron</label>
+                    <label class="brand-check"><input type="checkbox" value="Shell" checked> Shell</label>
+                    <label class="brand-check"><input type="checkbox" value="Caltex" checked> Caltex</label>
+                    <label class="brand-check"><input type="checkbox" value="SeaOil" checked> SeaOil</label>
+                    <label class="brand-check"><input type="checkbox" value="__ALL__"> All / Other Brands</label>
+                </div>
+                <div class="form-group" style="max-width: 140px;">
+                    <label for="searchRadius">Radius</label>
+                    <select id="searchRadius">
+                        <option value="3000">3 km</option>
+                        <option value="5000" selected>5 km</option>
+                        <option value="10000">10 km</option>
+                        <option value="20000">20 km</option>
+                    </select>
+                </div>
+                <button type="button" id="locateBtn">📍 Find Nearest Stations</button>
+            </div>
+            <div class="locator-status" id="locatorStatus" role="status" aria-live="polite"></div>
+            <div id="locatorMap"></div>
+            <ul class="station-list" id="stationList"></ul>
+        </div>
 
+        <footer>
+            Fuel IMS &amp; Variance Checker — runs entirely client-side; data is stored in this browser's local storage only. Station search uses OpenStreetMap contributors' data via the Overpass API.
+        </footer>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
         const DEFAULT_FUEL_DB = {
             "Diesel": { price: 56.74, currentStock: 28000, capacity: 40000, color: "var(--color-diesel)" },
@@ -481,45 +583,104 @@
             "95 RON": { price: 58.15, currentStock: 10500, capacity: 15000, color: "var(--color-95ron)" },
             "97 RON": { price: 67.99, currentStock: 7000, capacity: 10000, color: "var(--color-97ron)" }
         };
+        const REORDER_SAFETY_PCT = 0.30;
+        const CRITICAL_VARIANCE_PCT = 0.005;
+        const currencyFmt = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const volumeFmt = new Intl.NumberFormat('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-        const REORDER_SAFETY_PCT = 0.30; 
+        // Manually-sourced reference snapshot (NOT a live feed — see disclaimer in UI).
+        // Update this object periodically from DOE's Oil Monitor advisory, or have the developer refresh it.
+        // snapshotDate is a real Date used to auto-calculate staleness below — update it whenever the brand
+        // figures are refreshed so the UI warning stays accurate.
+        const MARKET_REFERENCE = {
+            snapshotDate: new Date(2026, 2, 3), // March 3, 2026 — month is 0-indexed
+            asOfLabel: "March 2026",
+            source: "Aggregated from public brand price trackers; verify against doe.gov.ph/oil-monitor",
+            brands: {
+                "Petron": { "Diesel": 59.90, "91 RON": 64.90, "95 RON": 67.65, "97 RON": 71.35 },
+                "Shell":  { "Diesel": 64.50, "91 RON": 65.20, "95 RON": 68.15, "97 RON": 72.85 },
+                "Caltex": { "Diesel": 60.00, "91 RON": 64.95, "95 RON": 67.75, "97 RON": 72.45 },
+                "SeaOil": { "Diesel": 58.25, "91 RON": null,  "95 RON": 66.00, "97 RON": null }
+            }
+        };
+
+        // Fuel-brand name matching patterns for OpenStreetMap tag lookups
+        const BRAND_PATTERNS = {
+            "Petron": /petron/i,
+            "Shell": /shell/i,
+            "Caltex": /caltex/i,
+            "SeaOil": /sea\s*-?\s*oil/i
+        };
+
+        // Safe localStorage helpers so a corrupted/missing cache never crashes the app
+        function loadDB() {
+            try {
+                const raw = localStorage.getItem('phFuelDB');
+                if (!raw) throw new Error('no db');
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') throw new Error('bad db');
+                return parsed;
+            } catch (e) {
+                localStorage.setItem('phFuelDB', JSON.stringify(DEFAULT_FUEL_DB));
+                return JSON.parse(JSON.stringify(DEFAULT_FUEL_DB));
+            }
+        }
+        function saveDB(db) { localStorage.setItem('phFuelDB', JSON.stringify(db)); }
+        function loadLogs() {
+            try {
+                const raw = localStorage.getItem('fuelTrackerLogs');
+                const parsed = raw ? JSON.parse(raw) : [];
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) { return []; }
+        }
+        function saveLogs(logs) { localStorage.setItem('fuelTrackerLogs', JSON.stringify(logs)); }
 
         document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
-            
-            if(!localStorage.getItem('phFuelDB')) {
-                localStorage.setItem('phFuelDB', JSON.stringify(DEFAULT_FUEL_DB));
-            }
-            
+            document.getElementById('logDate').max = new Date().toISOString().split('T')[0];
+
+            loadDB(); // ensures a valid db exists in storage
+
             initTheme();
             populatePriceInputs();
             buildDropdownOptions();
             refreshIMSDisplay();
             updateLivePriceLabel();
             renderHistoricalLedger();
+            renderRefTable();
 
-            const themeBtn = document.getElementById('themeToggle');
-            themeBtn.addEventListener('click', () => {
+            document.getElementById('refBrand').addEventListener('change', renderRefTable);
+            document.getElementById('applyRefBtn').addEventListener('click', applyReferenceToForm);
+            document.getElementById('locateBtn').addEventListener('click', runStationLocator);
+
+            document.getElementById('themeToggle').addEventListener('click', () => {
                 const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
                 document.documentElement.setAttribute('data-theme', theme);
                 localStorage.setItem('phFuelTheme', theme);
+                updateThemeIcon(theme);
             });
 
-            document.getElementById('fuelType').addEventListener('change', () => {
-                updateLivePriceLabel();
-            });
+            document.getElementById('fuelType').addEventListener('change', updateLivePriceLabel);
 
             document.getElementById('priceConfigForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                const db = JSON.parse(localStorage.getItem('phFuelDB'));
-                
-                db["Diesel"].price = parseFloat(document.getElementById('cfgDiesel').value);
-                db["91 RON"].price = parseFloat(document.getElementById('cfg91').value);
-                db["95 RON"].price = parseFloat(document.getElementById('cfg95').value);
-                db["97 RON"].price = parseFloat(document.getElementById('cfg97').value);
-                
-                localStorage.setItem('phFuelDB', JSON.stringify(db));
-                
+                const db = loadDB();
+                const diesel = parseFloat(document.getElementById('cfgDiesel').value);
+                const r91 = parseFloat(document.getElementById('cfg91').value);
+                const r95 = parseFloat(document.getElementById('cfg95').value);
+                const r97 = parseFloat(document.getElementById('cfg97').value);
+
+                if ([diesel, r91, r95, r97].some(v => isNaN(v) || v < 0)) {
+                    alert("Please enter valid, non-negative prices for all products.");
+                    return;
+                }
+
+                db["Diesel"].price = diesel;
+                db["91 RON"].price = r91;
+                db["95 RON"].price = r95;
+                db["97 RON"].price = r97;
+
+                saveDB(db);
                 refreshIMSDisplay();
                 updateLivePriceLabel();
                 alert("Price Matrix updated! Dashboard metrics and logs have updated instantly to match current rates.");
@@ -527,7 +688,9 @@
 
             document.getElementById('trackerForm').addEventListener('submit', (e) => {
                 e.preventDefault();
-                
+                const errEl = document.getElementById('formError');
+                errEl.textContent = '';
+
                 const date = document.getElementById('logDate').value;
                 const product = document.getElementById('fuelType').value;
                 const start = parseFloat(document.getElementById('startInv').value) || 0;
@@ -535,17 +698,21 @@
                 const sales = parseFloat(document.getElementById('sales').value) || 0;
                 const dip = parseFloat(document.getElementById('physicalDip').value) || 0;
 
-                const db = JSON.parse(localStorage.getItem('phFuelDB'));
+                const db = loadDB();
+                if (!db[product]) { errEl.textContent = 'Select a valid fuel product.'; return; }
                 const capacity = db[product].capacity;
                 const productColor = db[product].color;
 
                 if (dip > capacity) {
-                    alert(`Operational Error: Physical dip (${dip.toLocaleString()} L) exceeds maximum tank capacity (${capacity.toLocaleString()} L).`);
+                    errEl.textContent = `Operational error: physical dip (${volumeFmt.format(dip)} L) exceeds maximum tank capacity (${volumeFmt.format(capacity)} L).`;
                     return;
                 }
-
                 if (sales > (start + delivery)) {
-                    alert("Operational Safeguard Alert: Registered sales cannot logically transcend baseline starting inventory + inbound shipments.");
+                    errEl.textContent = "Registered sales cannot exceed baseline starting inventory plus inbound shipments.";
+                    return;
+                }
+                if ([start, delivery, sales, dip].some(v => v < 0)) {
+                    errEl.textContent = "Volumes cannot be negative.";
                     return;
                 }
 
@@ -553,46 +720,44 @@
                 const expectedBook = (start + delivery) - sales;
                 const varianceVol = dip - expectedBook;
                 const variancePHP = varianceVol * unitPrice;
-                const threshold = sales * 0.005;
+                const threshold = sales * CRITICAL_VARIANCE_PCT;
                 const isCritical = Math.abs(varianceVol) > threshold;
 
                 db[product].currentStock = dip;
-                localStorage.setItem('phFuelDB', JSON.stringify(db));
+                saveDB(db);
 
-                const logs = JSON.parse(localStorage.getItem('fuelTrackerLogs')) || [];
-                logs.unshift({ date, product, sales, varianceVol, variancePHP, isCritical });
-                localStorage.setItem('fuelTrackerLogs', JSON.stringify(logs));
+                const logs = loadLogs();
+                logs.unshift({
+                    id: Date.now() + '-' + Math.random().toString(36).slice(2, 7),
+                    date, product, sales, varianceVol, variancePHP, isCritical
+                });
+                saveLogs(logs);
 
                 const resultBox = document.getElementById('resultBox');
                 resultBox.style.borderLeftColor = productColor;
-
                 const resBookEl = document.getElementById('resBook');
                 const resVarEl = document.getElementById('resVar');
                 const resCashEl = document.getElementById('resCash');
-
                 resBookEl.style.color = productColor;
                 resVarEl.style.color = productColor;
                 resCashEl.style.color = productColor;
-
-                resBookEl.textContent = `${expectedBook.toLocaleString(undefined, {minimumFractionDigits: 2})} L`;
-                resVarEl.textContent = `${varianceVol > 0 ? '+' : ''}${varianceVol.toLocaleString(undefined, {minimumFractionDigits: 2})} L`;
-                resCashEl.textContent = `${variancePHP >= 0 ? '₱' : '-₱'}${Math.abs(variancePHP).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}`;
-
-                document.getElementById('resStatus').innerHTML = isCritical 
-                    ? `<span style="background:var(--danger); color:white; padding:4px 8px; border-radius:4px; font-weight:bold; display:inline-block; margin-top:2px;">Critical (>0.5%)</span>`
+                resBookEl.textContent = `${volumeFmt.format(expectedBook)} L`;
+                resVarEl.textContent = `${varianceVol > 0 ? '+' : ''}${volumeFmt.format(varianceVol)} L`;
+                resCashEl.textContent = `${variancePHP >= 0 ? '₱' : '-₱'}${currencyFmt.format(Math.abs(variancePHP))}`;
+                document.getElementById('resStatus').innerHTML = isCritical
+                    ? `<span style="background:var(--danger); color:white; padding:4px 8px; border-radius:4px; font-weight:bold; display:inline-block; margin-top:2px;">Critical (&gt;0.5%)</span>`
                     : `<span style="background:var(--success); color:white; padding:4px 8px; border-radius:4px; font-weight:bold; display:inline-block; margin-top:2px;">Normal Range</span>`;
-
                 resultBox.style.display = 'block';
-                
+
                 refreshIMSDisplay();
                 renderHistoricalLedger();
                 resetFormToDefaults();
             });
 
             document.getElementById('clearData').addEventListener('click', () => {
-                if(confirm("Wipe system transactional history logs? Data caches will reset to defaults.")) {
+                if (confirm("Wipe system transactional history logs? Data caches will reset to defaults.")) {
                     localStorage.removeItem('fuelTrackerLogs');
-                    localStorage.setItem('phFuelDB', JSON.stringify(DEFAULT_FUEL_DB));
+                    saveDB(JSON.parse(JSON.stringify(DEFAULT_FUEL_DB)));
                     populatePriceInputs();
                     refreshIMSDisplay();
                     updateLivePriceLabel();
@@ -603,14 +768,14 @@
             });
 
             document.getElementById('exportCSV').addEventListener('click', () => {
-                const logs = JSON.parse(localStorage.getItem('fuelTrackerLogs')) || [];
-                if(logs.length === 0) {
-                    alert("No parsed ledger records found to build an export document.");
+                const logs = loadLogs();
+                if (logs.length === 0) {
+                    alert("No ledger records found to export.");
                     return;
                 }
                 let csvContent = "data:text/csv;charset=utf-8,Date,Product Line,Sales Volume (L),Variance Vol (L),Variance Value (PHP),Status\n";
                 logs.forEach(l => {
-                    const cleanProduct = `"${l.product.replace(/"/g, '""')}"`;
+                    const cleanProduct = `"${String(l.product).replace(/"/g, '""')}"`;
                     const statusText = l.isCritical ? 'CRITICAL' : 'NORMAL';
                     csvContent += `${l.date},${cleanProduct},${l.sales},${l.varianceVol},${l.variancePHP},${statusText}\n`;
                 });
@@ -622,23 +787,40 @@
                 link.click();
                 document.body.removeChild(link);
             });
+
+            // Event delegation for per-row delete buttons
+            document.getElementById('ledgerBody').addEventListener('click', (e) => {
+                const btn = e.target.closest('.row-delete-btn');
+                if (!btn) return;
+                const id = btn.dataset.id;
+                if (!confirm("Remove this ledger entry? This cannot be undone.")) return;
+                const logs = loadLogs().filter(l => l.id !== id);
+                saveLogs(logs);
+                renderHistoricalLedger();
+            });
         });
 
         function initTheme() {
             const savedTheme = localStorage.getItem('phFuelTheme') || 'light';
             document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
         }
-
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('themeIcon');
+            const btn = document.getElementById('themeToggle');
+            icon.textContent = theme === 'dark' ? '☀️' : '🌙';
+            btn.setAttribute('aria-pressed', theme === 'dark' ? 'true' : 'false');
+            btn.setAttribute('title', theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+        }
         function populatePriceInputs() {
-            const db = JSON.parse(localStorage.getItem('phFuelDB')) || DEFAULT_FUEL_DB;
+            const db = loadDB();
             document.getElementById('cfgDiesel').value = db["Diesel"].price;
             document.getElementById('cfg91').value = db["91 RON"].price;
             document.getElementById('cfg95').value = db["95 RON"].price;
             document.getElementById('cfg97').value = db["97 RON"].price;
         }
-
         function buildDropdownOptions() {
-            const db = JSON.parse(localStorage.getItem('phFuelDB'));
+            const db = loadDB();
             const select = document.getElementById('fuelType');
             select.innerHTML = '';
             Object.keys(db).forEach(key => {
@@ -648,33 +830,30 @@
                 select.appendChild(opt);
             });
         }
-
         function updateLivePriceLabel() {
-            const db = JSON.parse(localStorage.getItem('phFuelDB'));
+            const db = loadDB();
             const pName = document.getElementById('fuelType').value;
-            if(!pName) return;
-            
+            if (!pName || !db[pName]) return;
+
             const prod = db[pName];
             const badge = document.getElementById('formProductBadge');
             badge.style.backgroundColor = prod.color;
             badge.textContent = `Rate: ₱${prod.price.toFixed(2)}/L`;
-            
+
             document.getElementById('startInv').value = prod.currentStock.toFixed(2);
         }
-
         function refreshIMSDisplay() {
-            const db = JSON.parse(localStorage.getItem('phFuelDB'));
+            const db = loadDB();
             const container = document.getElementById('imsMonitorRow');
             container.innerHTML = '';
-
             Object.keys(db).forEach(productName => {
                 const tank = db[productName];
-                const pct = (tank.currentStock / tank.capacity) * 100;
-                const isUnderSafety = (tank.currentStock / tank.capacity) <= REORDER_SAFETY_PCT;
-                
-                let barColor = tank.color;
-                if(isUnderSafety) barColor = 'var(--danger)';
+                const ratio = tank.currentStock / tank.capacity;
+                const pct = ratio * 100;
+                const isUnderSafety = ratio <= REORDER_SAFETY_PCT;
 
+                let barColor = tank.color;
+                if (isUnderSafety) barColor = 'var(--danger)';
                 const card = document.createElement('div');
                 card.className = 'tank-card';
                 card.innerHTML = `
@@ -683,14 +862,14 @@
                         <span class="tank-title">${productName}</span>
                         <span class="tank-price">₱${tank.price.toFixed(2)}</span>
                     </div>
-                    <div class="progress-container">
-                        <div class="progress-bar" style="width: ${pct}%; background-color: ${barColor}">
+                    <div class="progress-container" role="progressbar" aria-valuenow="${pct.toFixed(0)}" aria-valuemin="0" aria-valuemax="100" aria-label="${productName} tank fill level">
+                        <div class="progress-bar" style="width: ${Math.min(pct, 100)}%; background-color: ${barColor}">
                             ${pct.toFixed(0)}%
                         </div>
                     </div>
                     <div class="tank-meta">
-                        <span>Stock: <strong>${tank.currentStock.toLocaleString()} L</strong></span>
-                        <span>Cap: ${tank.capacity.toLocaleString()} L</span>
+                        <span>Stock: <strong>${tank.currentStock.toLocaleString('en-PH')} L</strong></span>
+                        <span>Cap: ${tank.capacity.toLocaleString('en-PH')} L</span>
                     </div>
                     <div class="forecast-badge ${isUnderSafety ? 'status-order' : 'status-ok'}">
                         ${isUnderSafety ? '🚨 Priority Order Alert' : '✅ Stock Secure'}
@@ -699,40 +878,287 @@
                 container.appendChild(card);
             });
         }
+        function renderSummaryStrip(logs) {
+            const strip = document.getElementById('summaryStrip');
+            const totalEntries = logs.length;
+            const criticalCount = logs.filter(l => l.isCritical).length;
+            const totalVarianceVol = logs.reduce((sum, l) => sum + l.varianceVol, 0);
+            const totalVarianceValue = logs.reduce((sum, l) => sum + l.variancePHP, 0);
 
+            strip.innerHTML = `
+                <div class="summary-chip">
+                    <div class="label">Entries</div>
+                    <div class="value">${totalEntries}</div>
+                </div>
+                <div class="summary-chip">
+                    <div class="label">Critical Flags</div>
+                    <div class="value" style="color:${criticalCount > 0 ? 'var(--danger)' : 'var(--success)'}">${criticalCount}</div>
+                </div>
+                <div class="summary-chip">
+                    <div class="label">Net Variance Vol</div>
+                    <div class="value">${volumeFmt.format(totalVarianceVol)} L</div>
+                </div>
+                <div class="summary-chip">
+                    <div class="label">Net Variance Value</div>
+                    <div class="value" style="color:${totalVarianceValue < 0 ? 'var(--danger)' : 'var(--success)'}">₱${currencyFmt.format(totalVarianceValue)}</div>
+                </div>
+            `;
+        }
         function renderHistoricalLedger() {
-            const logs = JSON.parse(localStorage.getItem('fuelTrackerLogs')) || [];
+            const logs = loadLogs();
             const body = document.getElementById('ledgerBody');
             body.innerHTML = '';
+            renderSummaryStrip(logs);
 
-            if(logs.length === 0) {
-                body.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-secondary);">No ledger balance records stored.</td></tr>`;
+            if (logs.length === 0) {
+                body.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-secondary);">No ledger balance records stored.</td></tr>`;
                 return;
             }
-
             logs.forEach(l => {
                 const row = document.createElement('tr');
-                const statusCell = l.isCritical 
-                    ? `<span class="text-danger">⚠️ Critical Variation</span>` 
+                const statusCell = l.isCritical
+                    ? `<span class="text-danger">⚠️ Critical Variation</span>`
                     : `<span class="text-success">Passed</span>`;
-                
+
                 row.innerHTML = `
                     <td>${l.date}</td>
                     <td><strong>${l.product}</strong></td>
-                    <td>${l.sales.toLocaleString()} L</td>
+                    <td>${l.sales.toLocaleString('en-PH')} L</td>
                     <td class="${l.varianceVol < 0 ? 'text-danger' : ''}">${l.varianceVol > 0 ? '+' : ''}${l.varianceVol.toFixed(2)} L</td>
-                    <td class="${l.variancePHP < 0 ? 'text-danger' : ''}">₱${l.variancePHP.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2})}</td>
+                    <td class="${l.variancePHP < 0 ? 'text-danger' : ''}">₱${currencyFmt.format(l.variancePHP)}</td>
                     <td>${statusCell}</td>
+                    <td><button type="button" class="row-delete-btn" data-id="${l.id}" aria-label="Delete entry for ${l.product} on ${l.date}">Delete</button></td>
                 `;
                 body.appendChild(row);
             });
         }
-
         function resetFormToDefaults() {
             document.getElementById('deliveries').value = "0.00";
             document.getElementById('sales').value = "0.00";
             document.getElementById('physicalDip').value = "0.00";
             updateLivePriceLabel();
+        }
+
+        /* ---------------- Market Reference Comparator ---------------- */
+        function renderRefTable() {
+            const brand = document.getElementById('refBrand').value;
+            const data = MARKET_REFERENCE.brands[brand];
+            const body = document.getElementById('refTableBody');
+            body.innerHTML = Object.keys(data).map(product => {
+                const val = data[product];
+                return `<tr><td>${product}</td><td>${val === null ? '<span style="color:var(--text-secondary)">No data</span>' : '₱' + val.toFixed(2)}</td></tr>`;
+            }).join('');
+            document.getElementById('refSourceNote').textContent =
+                `Snapshot as of: ${MARKET_REFERENCE.asOfLabel} (${describeSnapshotAge(MARKET_REFERENCE.snapshotDate)}) — ${MARKET_REFERENCE.source}`;
+        }
+        function describeSnapshotAge(snapshotDate) {
+            const now = new Date();
+            let months = (now.getFullYear() - snapshotDate.getFullYear()) * 12 + (now.getMonth() - snapshotDate.getMonth());
+            if (now.getDate() < snapshotDate.getDate()) months -= 1;
+            months = Math.max(months, 0);
+            if (months === 0) return "updated this month";
+            if (months === 1) return "⚠️ 1 month old";
+            if (months <= 2) return `⚠️ ${months} months old`;
+            return `🚨 ${months} months old — likely stale, please refresh`;
+        }
+        function applyReferenceToForm() {
+            const brand = document.getElementById('refBrand').value;
+            const data = MARKET_REFERENCE.brands[brand];
+            const fieldMap = { "Diesel": "cfgDiesel", "91 RON": "cfg91", "95 RON": "cfg95", "97 RON": "cfg97" };
+            let skipped = [];
+            Object.keys(fieldMap).forEach(product => {
+                const val = data[product];
+                if (val === null || val === undefined) { skipped.push(product); return; }
+                document.getElementById(fieldMap[product]).value = val.toFixed(2);
+            });
+            let msg = `${brand} reference figures loaded into the Price Matrix fields below. Review them, then click "Save Price Matrix" to apply.`;
+            if (skipped.length) msg += ` (No reference data for: ${skipped.join(', ')} — left unchanged.)`;
+            alert(msg);
+        }
+
+        /* ---------------- Nearest Station Locator ---------------- */
+        let locatorMapInstance = null;
+        let locatorMarkers = [];
+
+        function haversineKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLon / 2) ** 2;
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function getSelectedBrands() {
+            const boxes = document.querySelectorAll('#brandFilterGroup input[type="checkbox"]');
+            const selected = [];
+            boxes.forEach(b => { if (b.checked) selected.push(b.value); });
+            return selected;
+        }
+
+        function detectBrand(tags) {
+            const haystack = `${tags.brand || ''} ${tags.name || ''} ${tags.operator || ''}`;
+            for (const [brand, pattern] of Object.entries(BRAND_PATTERNS)) {
+                if (pattern.test(haystack)) return brand;
+            }
+            return tags.brand || tags.name || 'Unbranded / Other';
+        }
+
+        function runStationLocator() {
+            const statusEl = document.getElementById('locatorStatus');
+            const listEl = document.getElementById('stationList');
+            const selectedBrands = getSelectedBrands();
+            if (selectedBrands.length === 0) {
+                statusEl.textContent = 'Select at least one brand (or "All / Other Brands") to search.';
+                return;
+            }
+            if (!navigator.geolocation) {
+                statusEl.textContent = 'Geolocation is not supported by this browser.';
+                return;
+            }
+            statusEl.textContent = '📍 Getting your current location…';
+            listEl.innerHTML = '';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    fetchNearbyStations(latitude, longitude, selectedBrands);
+                },
+                (err) => {
+                    statusEl.textContent = `Could not get your location (${err.message}). Please allow location access and try again.`;
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+            );
+        }
+
+        async function fetchNearbyStations(lat, lon, selectedBrands) {
+            const statusEl = document.getElementById('locatorStatus');
+            const listEl = document.getElementById('stationList');
+            const radius = document.getElementById('searchRadius').value;
+            statusEl.textContent = '🔎 Searching nearby fuel stations…';
+
+            const query = `[out:json][timeout:25];(node["amenity"="fuel"](around:${radius},${lat},${lon});way["amenity"="fuel"](around:${radius},${lat},${lon}););out center tags;`;
+
+            try {
+                const resp = await fetch('https://overpass-api.de/api/interpreter', {
+                    method: 'POST',
+                    body: 'data=' + encodeURIComponent(query)
+                });
+                if (!resp.ok) throw new Error(`Overpass API returned ${resp.status}`);
+                const data = await resp.json();
+
+                let stations = (data.elements || []).map(el => {
+                    const tags = el.tags || {};
+                    const elLat = el.lat ?? el.center?.lat;
+                    const elLon = el.lon ?? el.center?.lon;
+                    if (elLat == null || elLon == null) return null;
+                    const brand = detectBrand(tags);
+                    return {
+                        name: tags.name || tags.brand || 'Unnamed Fuel Station',
+                        brand,
+                        lat: elLat,
+                        lon: elLon,
+                        distanceKm: haversineKm(lat, lon, elLat, elLon),
+                        address: [tags['addr:street'], tags['addr:city']].filter(Boolean).join(', ')
+                    };
+                }).filter(Boolean);
+
+                const wantsAll = selectedBrands.includes('__ALL__');
+                const wantedNamedBrands = selectedBrands.filter(b => b !== '__ALL__');
+                stations = stations.filter(s => {
+                    if (wantsAll) return true;
+                    return wantedNamedBrands.includes(s.brand);
+                });
+
+                stations.sort((a, b) => a.distanceKm - b.distanceKm);
+                stations = stations.slice(0, 20);
+
+                if (stations.length === 0) {
+                    statusEl.textContent = 'No matching fuel stations found in this radius. Try a larger radius or different brands.';
+                    listEl.innerHTML = '';
+                    hideLocatorMap();
+                    return;
+                }
+
+                statusEl.textContent = `Found ${stations.length} station${stations.length === 1 ? '' : 's'} within ${(radius / 1000).toFixed(0)} km, sorted by distance.`;
+                renderStationList(stations);
+                renderLocatorMap(lat, lon, stations);
+            } catch (err) {
+                statusEl.textContent = `Search failed: ${err.message}. The Overpass API may be busy — please try again in a moment.`;
+            }
+        }
+
+        function renderStationList(stations) {
+            const listEl = document.getElementById('stationList');
+            listEl.innerHTML = stations.map(s => {
+                const dirUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lon}`;
+                return `
+                <li class="station-item">
+                    <div>
+                        <div class="station-name">${escapeHtml(s.name)} <span class="brand-chip" style="background:${brandColor(s.brand)}">${escapeHtml(s.brand)}</span></div>
+                        <div class="station-meta">${escapeHtml(s.address) || 'Address not tagged in OpenStreetMap'}</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="station-distance">${s.distanceKm.toFixed(2)} km</div>
+                        <a class="station-dir-link" href="${dirUrl}" target="_blank" rel="noopener">Directions ↗</a>
+                    </div>
+                </li>`;
+            }).join('');
+        }
+
+        function brandColor(brand) {
+            const map = { "Petron": "#dc2626", "Shell": "#eab308", "Caltex": "#dc2626", "SeaOil": "#16a34a" };
+            return map[brand] || '#64748b';
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str || '';
+            return div.innerHTML;
+        }
+
+        function hideLocatorMap() {
+            document.getElementById('locatorMap').style.display = 'none';
+        }
+
+        function renderLocatorMap(lat, lon, stations) {
+            const mapEl = document.getElementById('locatorMap');
+            mapEl.style.display = 'block';
+
+            if (!window.L) {
+                mapEl.innerHTML = '<p style="padding:1rem;color:var(--text-secondary);">Map library failed to load — showing list results only.</p>';
+                return;
+            }
+
+            if (locatorMapInstance) {
+                locatorMapInstance.remove();
+                locatorMapInstance = null;
+            }
+            locatorMarkers = [];
+
+            locatorMapInstance = L.map('locatorMap').setView([lat, lon], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors',
+                maxZoom: 19
+            }).addTo(locatorMapInstance);
+
+            L.circleMarker([lat, lon], { radius: 8, color: '#1e40af', fillColor: '#1e40af', fillOpacity: 0.9 })
+                .addTo(locatorMapInstance)
+                .bindPopup('Your location');
+
+            stations.forEach(s => {
+                const marker = L.marker([s.lat, s.lon]).addTo(locatorMapInstance);
+                marker.bindPopup(`<strong>${escapeHtml(s.name)}</strong><br>${escapeHtml(s.brand)}<br>${s.distanceKm.toFixed(2)} km away`);
+                locatorMarkers.push(marker);
+            });
+
+            // Fit map to show all markers
+            const bounds = L.latLngBounds([[lat, lon], ...stations.map(s => [s.lat, s.lon])]);
+            locatorMapInstance.fitBounds(bounds, { padding: [30, 30] });
+
+            // Leaflet needs a nudge to size correctly inside a dynamically-shown container
+            setTimeout(() => locatorMapInstance.invalidateSize(), 100);
         }
     </script>
 </body>
